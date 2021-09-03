@@ -3,6 +3,7 @@ require('dotenv').config()
 
 const Hapi = require('@hapi/hapi')
 const songs = require('./api/songs')
+const ClientError = require('./exceptions/ClientError')
 const SongsService = require('./services/postgres/SongsService')
 const SongsValidator = require('./validator/songs')
 
@@ -16,6 +17,22 @@ const init = async () => {
         origin: ['*']
       }
     }
+  })
+
+  server.ext('onPreResponse', (request, h) => {
+    const { response } = request
+
+    if (response instanceof ClientError) {
+      const newResponse = h.response({
+        status: 'fail',
+        message: response.message
+      })
+      newResponse.code(response.statusCode)
+      return newResponse
+    }
+
+    // jika bukan ClientError, lanjutkan dengan response sebelumnya (tanpa terintervensi)
+    return response.continue || response
   })
 
   await server.register({
