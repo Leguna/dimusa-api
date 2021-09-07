@@ -70,7 +70,7 @@ class PlaylistsService {
     return result.rows[0].id
   }
 
-  async getPlaylistById ({ id, owner }) {
+  async getSongsFromPlaylist (id, owner) {
     const query = {
       text: `SELECT songs.id,title,performer FROM playlistsongs
               LEFT JOIN songs ON playlistsongs.song_id = songs.id
@@ -87,9 +87,9 @@ class PlaylistsService {
     return result.rows
   }
 
-  async deleteSongFromPlaylistById ({ playlistId, songId }) {
+  async deleteSongFromPlaylistById (playlistId, songId) {
     const query = {
-      text: 'DELETE FROM playlistsongs WHERE playlist_id = $1 AND song_id = $1 RETURNING id',
+      text: 'DELETE FROM playlistsongs WHERE playlist_id = $1 AND song_id = $2 RETURNING id',
       values: [playlistId, songId]
     }
 
@@ -115,20 +115,20 @@ class PlaylistsService {
     }
   }
 
-  async verifyPlaylistAccess (playlistId, userId) {
-    try {
-      await this.verifyPlaylistOwner(playlistId, userId)
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        throw error
-      }
-      try {
-        await this._collaborationService.verifyCollaborator(playlistId, userId)
-      } catch {
-        throw error
-      }
-    }
-  }
+  // async verifyPlaylistAccess (playlistId, userId) {
+  //   try {
+  //     await this.verifyPlaylistOwner(playlistId, userId)
+  //   } catch (error) {
+  //     if (error instanceof NotFoundError) {
+  //       throw error
+  //     }
+  //     try {
+  //       await this._collaborationService.verifyCollaborator(playlistId, userId)
+  //     } catch {
+  //       throw error
+  //     }
+  //   }
+  // }
 }
 
 module.exports = PlaylistsService

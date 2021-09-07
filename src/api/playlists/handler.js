@@ -8,8 +8,9 @@ class PlaylistsHandler {
     this.postPlaylistHandler = this.postPlaylistHandler.bind(this)
     this.getPlaylistsHandler = this.getPlaylistsHandler.bind(this)
     this.deletePlaylistByIdHandler = this.deletePlaylistByIdHandler.bind(this)
-    // this.getPlaylistByIdHandler = this.getPlaylistByIdHandler.bind(this)
-    // this.putPlaylistByIdHandler = this.putPlaylistByIdHandler.bind(this)
+    this.postSongToPlaylistHandler = this.postSongToPlaylistHandler.bind(this)
+    this.getSongsFromPlaylistHandler = this.getSongsFromPlaylistHandler.bind(this)
+    this.deleteSongsFromPlaylistHandler = this.deleteSongsFromPlaylistHandler.bind(this)
   }
 
   async postPlaylistHandler (request, h) {
@@ -18,7 +19,6 @@ class PlaylistsHandler {
 
       const { name } = request.payload
       const { id: credentialId } = request.auth.credentials
-      console.log(`${name} ${credentialId}`)
       const playlistId = await this._service.addPlaylist({ name, owner: credentialId })
 
       const response = h.response({
@@ -101,16 +101,23 @@ class PlaylistsHandler {
     }
   }
 
-  async getPlaylistByIdHandler (request, h) {
+  async postSongToPlaylistHandler (request, h) {
     try {
-      const { songId } = request.params
-      const song = await this._service.getPlaylistById(songId)
-      return {
+      this._validator.validatePlaylistWithIdPayload(request.payload)
+
+      const { playlistId } = request.params
+      const { songId } = request.payload
+      const { id: credentialId } = request.auth.credentials
+
+      await this._service.verifyPlaylistOwner(playlistId, credentialId)
+      await this._service.addSongtoPlaylist(playlistId, songId)
+
+      const response = h.response({
         status: 'success',
-        data: {
-          song
-        }
-      }
+        message: 'Lagu berhasil ditambahkan ke playlist'
+      })
+      response.code(201)
+      return response
     } catch (error) {
       if (error instanceof ClientError) {
         const response = h.response({
@@ -132,16 +139,42 @@ class PlaylistsHandler {
     }
   }
 
-  async putPlaylistByIdHandler (request, h) {
-    try {
-      this._validator.validatePlaylistPayload(request.payload)
-      const { songId } = request.params
+  async getSongsFromPlaylistHandler (request, h) {
+    const { playlistId } = request.params
+    const { id: credentialId } = request.auth.credentials
 
-      await this._service.editPlaylistById(songId, request.payload)
+    await this._service.verifyPlaylistOwner(playlistId, credentialId)
+
+    try {
+      const songs = await this._service.getSongsFromPlaylist(playlistId, credentialId)
+      return {
+        status: 'success',
+        data: {
+          songs
+        }
+      }
+    } catch (error) {
+      return {
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.'
+      }
+    }
+  }
+
+  async deleteSongsFromPlaylistHandler (request, h) {
+    try {
+      this._validator.validatePlaylistWithIdPayload(request.payload)
+
+      const { id: credentialId } = request.auth.credentials
+      const { playlistId } = request.params
+      const { songId } = request.payload
+
+      await this._service.verifyPlaylistOwner(playlistId, credentialId)
+      await this._service.deleteSongFromPlaylistById(playlistId, songId)
 
       return {
         status: 'success',
-        message: 'Lagu berhasil diperbarui'
+        message: 'Lagu berhasil dihapus dari playlist'
       }
     } catch (error) {
       if (error instanceof ClientError) {
