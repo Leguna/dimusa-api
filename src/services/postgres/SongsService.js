@@ -28,8 +28,8 @@ class SongsService {
   }
 
   async getSongs () {
-    const result = await this._pool.query('SELECT id,title,performer FROM songs')
-    return result.rows
+    const { rows } = await this._pool.query('SELECT id,title,performer FROM songs')
+    return rows
   }
 
   async getSongById (id) {
