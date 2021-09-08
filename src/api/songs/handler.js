@@ -41,9 +41,9 @@ class SongsHandler {
     }
   }
 
-  async getSongByIdHandler (request, h) {
+  async getSongByIdHandler ({ params }, h) {
     try {
-      const { songId } = request.params
+      const { songId } = params
       const song = await this._service.getSongById(songId)
       return {
         status: 'success',
@@ -72,9 +72,9 @@ class SongsHandler {
     }
   }
 
-  async deleteSongByIdHandler (request, h) {
+  async deleteSongByIdHandler ({ params }, h) {
     try {
-      const { songId } = request.params
+      const { songId } = params
       await this._service.deleteSongById(songId)
 
       return {
