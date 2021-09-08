@@ -109,7 +109,7 @@ class PlaylistsHandler {
       const { songId } = request.payload
       const { id: credentialId } = request.auth.credentials
 
-      await this._service.verifyPlaylistOwner(playlistId, credentialId)
+      await this._service.verifyPlaylistAccess(playlistId, credentialId)
       await this._service.addSongtoPlaylist(playlistId, songId)
 
       const response = h.response({
@@ -143,7 +143,7 @@ class PlaylistsHandler {
     const { playlistId } = request.params
     const { id: credentialId } = request.auth.credentials
 
-    await this._service.verifyPlaylistOwner(playlistId, credentialId)
+    await this._service.verifyPlaylistAccess(playlistId, credentialId)
 
     try {
       const songs = await this._service.getSongsFromPlaylist(playlistId, credentialId)
@@ -169,7 +169,7 @@ class PlaylistsHandler {
       const { playlistId } = request.params
       const { songId } = request.payload
 
-      await this._service.verifyPlaylistOwner(playlistId, credentialId)
+      await this._service.verifyPlaylistAccess(playlistId, credentialId)
       await this._service.deleteSongFromPlaylistById(playlistId, songId)
 
       return {

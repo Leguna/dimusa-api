@@ -6,8 +6,9 @@ const AuthorizationError = require('../../exceptions/AuthorizationError')
 // const { mapDBToModel } = require('../../utils')
 
 class PlaylistsService {
-  constructor () {
+  constructor (collaborationService) {
     this._pool = new Pool()
+    this._collaborationService = collaborationService
   }
 
   async addPlaylist ({ name, owner }) {
@@ -29,15 +30,19 @@ class PlaylistsService {
 
   async getPlaylists (owner) {
     const query = {
-      text: `SELECT playlists.id, playlists.name, users.username 
-                FROM playlists 
-                LEFT JOIN users ON users.id = playlists.owner
-                WHERE playlists.owner = $1 OR users.id = $1`,
+      text: `SELECT p.id, p.name, u.username FROM playlists as p
+                LEFT JOIN collaborations as c ON c.playlist_id = p.id
+                LEFT JOIN users as u ON u.id = p.owner
+                WHERE p.owner = $1 OR u.id = $1 or c.user_id = $1
+                 `,
       values: [owner]
     }
-
-    const result = await this._pool.query(query)
-    return result.rows
+    try {
+      const result = await this._pool.query(query)
+      return result.rows
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async deletePlaylistById (id) {
@@ -75,16 +80,20 @@ class PlaylistsService {
       text: `SELECT songs.id,title,performer FROM playlistsongs
               LEFT JOIN songs ON playlistsongs.song_id = songs.id
               LEFT JOIN playlists ON playlistsongs.playlist_id = playlists.id 
-              WHERE (playlists.id = $1 or playlistsongs.playlist_id = $1) AND playlists.owner = $2`,
-      values: [id, owner]
+              WHERE (playlists.id = $1 or playlistsongs.playlist_id = $1)`,
+      values: [id]
     }
-    const result = await this._pool.query(query)
+    try {
+      const result = await this._pool.query(query)
 
-    if (!result.rowCount) {
-      throw new NotFoundError('Playlist tidak ditemukan')
+      if (!result.rowCount) {
+        throw new NotFoundError('Playlist tidak ditemukan')
+      }
+
+      return result.rows
+    } catch (error) {
+      console.log(error)
     }
-
-    return result.rows
   }
 
   async deleteSongFromPlaylistById (playlistId, songId) {
@@ -100,10 +109,10 @@ class PlaylistsService {
     }
   }
 
-  async verifyPlaylistOwner (id, owner) {
+  async verifyPlaylistOwner (playlistId, owner) {
     const query = {
       text: 'SELECT * FROM playlists WHERE id = $1',
-      values: [id]
+      values: [playlistId]
     }
     const result = await this._pool.query(query)
     if (!result.rows.length) {
@@ -115,20 +124,20 @@ class PlaylistsService {
     }
   }
 
-  // async verifyPlaylistAccess (playlistId, userId) {
-  //   try {
-  //     await this.verifyPlaylistOwner(playlistId, userId)
-  //   } catch (error) {
-  //     if (error instanceof NotFoundError) {
-  //       throw error
-  //     }
-  //     try {
-  //       await this._collaborationService.verifyCollaborator(playlistId, userId)
-  //     } catch {
-  //       throw error
-  //     }
-  //   }
-  // }
+  async verifyPlaylistAccess (playlistId, userId) {
+    try {
+      await this.verifyPlaylistOwner(playlistId, userId)
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error
+      }
+      try {
+        await this._collaborationService.verifyCollaborator(playlistId, userId)
+      } catch {
+        throw error
+      }
+    }
+  }
 }
 
 module.exports = PlaylistsService
