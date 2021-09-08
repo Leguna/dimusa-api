@@ -1,4 +1,3 @@
-const ClientError = require('../../exceptions/ClientError')
 
 class AuthenticationsHandler {
   constructor (authenticationsService, usersService, tokenManager, validator) {
@@ -35,23 +34,7 @@ class AuthenticationsHandler {
       response.code(201)
       return response
     } catch (error) {
-      if (error instanceof ClientError) {
-        const response = h.response({
-          status: 'fail',
-          message: error.message
-        })
-        response.code(error.statusCode)
-        return response
-      }
-
-      // Server ERROR!
-      const response = h.response({
-        status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.'
-      })
-      response.code(500)
-      console.error(error)
-      return response
+      return error
     }
   }
 
@@ -72,23 +55,7 @@ class AuthenticationsHandler {
         }
       }
     } catch (error) {
-      if (error instanceof ClientError) {
-        const response = h.response({
-          status: 'fail',
-          message: error.message
-        })
-        response.code(error.statusCode)
-        return response
-      }
-
-      // Server ERROR!
-      const response = h.response({
-        status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.'
-      })
-      response.code(500)
-      console.error(error)
-      return response
+      return error
     }
   }
 
@@ -105,23 +72,7 @@ class AuthenticationsHandler {
         message: 'Refresh token berhasil dihapus'
       }
     } catch (error) {
-      if (error instanceof ClientError) {
-        const response = h.response({
-          status: 'fail',
-          message: error.message
-        })
-        response.code(error.statusCode)
-        return response
-      }
-
-      // Server ERROR!
-      const response = h.response({
-        status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.'
-      })
-      response.code(500)
-      console.error(error)
-      return response
+      return error
     }
   }
 }

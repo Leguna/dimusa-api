@@ -52,16 +52,25 @@ const init = async () => {
 
   server.ext('onPreResponse', (request, h) => {
     const { response } = request
+    const statusCode = response.statusCode || response.output.statusCode
 
-    if (response instanceof ClientError) {
+    if (response instanceof ClientError || statusCode === 401) {
       const newResponse = h.response({
         status: 'fail',
         message: response.message
       })
-      newResponse.code(response.statusCode)
+      newResponse.code(statusCode)
+      return newResponse
+    } else if (response instanceof Error) {
+    // Server ERROR!
+      const newResponse = h.response({
+        status: 'error',
+        message: 'Maaf, terjadi kegagalan pada server kami.'
+      })
+      newResponse.code(500)
+      console.error(response.message)
       return newResponse
     }
-
     // jika bukan ClientError, lanjutkan dengan response sebelumnya (tanpa terintervensi)
     return response.continue || response
   })
