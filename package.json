@@ -1,7 +1,7 @@
 {
   "name": "dimusa-api",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "Music API from Leguna Studio for Dicoding Submission",
   "main": "index.js",
   "scripts": {
     "start-prod": "NODE_ENV=production node ./src/server.js",
