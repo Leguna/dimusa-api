@@ -3,7 +3,8 @@ require('dotenv').config()
 
 const Hapi = require('@hapi/hapi')
 const Jwt = require('@hapi/jwt')
-// const Inert = require('@hapi/inert')
+const path = require('path')
+const Inert = require('@hapi/inert')
 
 // Error
 const ClientError = require('./exceptions/ClientError')
@@ -39,24 +40,22 @@ const _exports = require('./api/exports')
 const ProducerService = require('./services/rabbitmq/ProducerService')
 const ExportsValidator = require('./validator/exports')
 
-// // uploads
-// const uploads = require('./api/uploads')
-// const StorageService = require('./services/S3/StorageService')
-// const UploadsValidator = require('./validator/uploads')
+// uploads
+const uploads = require('./api/uploads')
+const StorageService = require('./services/storage/StorageService')
+const UploadsValidator = require('./validator/uploads')
 
-// // cache
-// const CacheService = require('./services/redis/CacheService')
+// cache
+const CacheService = require('./services/redis/CacheService')
 
 const init = async () => {
-  // const cacheService = new CacheService()
-  // const collaborationsService = new CollaborationsService(cacheService)
-  // const playlistsService = new PlaylistsService(collaborationsService,cacheService)
-  const collaborationsService = new CollaborationsService()
-  const playlistsService = new PlaylistsService(collaborationsService)
+  const cacheService = new CacheService()
+  const collaborationsService = new CollaborationsService(cacheService)
+  const playlistsService = new PlaylistsService(collaborationsService, cacheService)
   const songsService = new SongsService()
   const usersService = new UsersService()
   const authenticationsService = new AuthenticationsService()
-  // const storageService = new StorageService()
+  const storageService = new StorageService(path.resolve(__dirname, 'api/uploads/file/images'))
 
   const server = Hapi.server({
     port: process.env.PORT,
@@ -68,11 +67,12 @@ const init = async () => {
     }
   })
 
+  // Error Management
   server.ext('onPreResponse', (request, h) => {
     const { response } = request
     const statusCode = response.statusCode || response.output.statusCode
 
-    if (response instanceof ClientError || statusCode === 401) {
+    if (response instanceof ClientError || statusCode === 401 || statusCode === 413) {
       const newResponse = h.response({
         status: 'fail',
         message: response.message
@@ -97,10 +97,10 @@ const init = async () => {
   await server.register([
     {
       plugin: Jwt
+    },
+    {
+      plugin: Inert
     }
-    // {
-    //   plugin: Inert
-    // }
   ])
 
   // mendefinisikan strategy autentikasi jwt
@@ -119,7 +119,6 @@ const init = async () => {
       }
     })
   })
-
   await server.register([
     {
       plugin: songs,
@@ -166,13 +165,14 @@ const init = async () => {
         validator: ExportsValidator,
         playlistService: playlistsService
       }
+    },
+    {
+      plugin: uploads,
+      options: {
+        service: storageService,
+        validator: UploadsValidator
+      }
     }
-    // {
-    //   plugin: uploads,
-    //   options: {
-    //     service: storageService,
-    //     validator: UploadsValidator
-    //   }
   ])
 
   await server.start()
